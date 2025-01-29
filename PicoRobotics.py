@@ -142,7 +142,7 @@ class KitronikPicoRobotics:
     #so is 'backwards' - the fastest that works reliably with the motors I have to hand is 20mS, but slower than that is good. tested to 2000 (2 seconds per step).
     # motor should be 1 or 2 - 1 is terminals for motor 1 and 2 on PCB, 2 is terminals for motor 3 and 4 on PCB
 
-    def step(self,motor, direction, steps, speed =20, holdPosition=False):
+    def step(self,motor, direction, steps, speed = 20, holdPosition=False):
 
         if((motor<1) or (motor>2)):
             raise Exception("INVALID MOTOR NUMBER") # harsh, but at least you'll know
@@ -170,6 +170,40 @@ class KitronikPicoRobotics:
         if(holdPosition == False):            
             for coil in coils:
                 self.motorOff(coil)
+                
+    #move two steppers at the same time.
+    #Use "f" and "r" to move them in the same direction, or "f/r" and "r/f" to move in oppposing directions
+    def bothStep(self, direction, steps, speed = 20, holdPosition=False):
+
+        if(direction =="f"):
+            directions = ["f", "r"]
+            coils = 1, 2, 3, 4
+        elif (direction == "r"):
+            directions = ["r", "f"]
+            coils = 4, 3, 2, 1
+        elif(direction =="f/r"):
+            directions = ["f", "r"]
+            coils = 2, 1, 3, 4
+        elif (direction == "r/f"):
+            directions = ["r", "f"]
+            coils = 1, 2, 4, 3
+        else:
+            raise Exception("INVALID DIRECTION") #harsh, but at least you'll know
+        while steps > 0: 
+            for direction in directions:
+                if(steps == 0):
+                    break
+                for coil in coils:
+                    self.motorOn(coil,direction,100)
+                    utime.sleep_ms(speed)
+                    steps -=1
+                    if(steps == 0):
+                        break
+    #to save power turn off the coils once we have finished.
+    #this means the motor wont hold position.
+        if(holdPosition == False):            
+            for coil in coils:
+                self.motorOff(coil)
 
     #Step an angle. this is limited by the step resolution - so 200 steps is 1.8 degrees per step for instance.
     # a request for 20 degrees with 200 steps/rev will result in 11 steps - or 19.8 rather than 20.
@@ -178,8 +212,16 @@ class KitronikPicoRobotics:
         print (steps)
         self.step(motor, direction, steps, speed, holdPosition)
         
+        
+    #The same, but for both stepper motors
+    #Use "f" and "r" to move them in the same direction, or "f/r" and "r/f" to move in oppposing directions
+    def bothStepAngle(self, direction, angle, speed =20, holdPosition=False, stepsPerRev=200):
+        steps = int(angle/(360/stepsPerRev))
+        print (steps)
+        self.bothStep(direction, steps, speed, holdPosition)
+        
 
-    # initialaisation code for using:
+    # initialisation code for using:
         #defaults to the standard pins and address for the kitronik board, but could be overridden
     def __init__(self, I2CAddress=108,sda=8,scl=9):
         self.CHIP_ADDRESS = 108
